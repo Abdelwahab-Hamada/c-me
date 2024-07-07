@@ -132,3 +132,8 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels.layers.InMemoryChannelLayer"
     }
 }
+
+DEFAULT_FILES_PATH = 'chat/attachments/{uuid}{extension}'
+
+MEDIA_URL = 'media/'
+MEDIA_ROOT= BASE_DIR / 'media'
