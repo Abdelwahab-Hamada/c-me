@@ -5,12 +5,17 @@
     <title>Chat Room</title>
 </head>
 <body>
+    <p id="user-availability-state"></p>
+    <p id="user-typing-state"></p>
     <textarea id="chat-log" cols="100" rows="20"></textarea><br>
     <input id="chat-message-input" type="text" size="100"><br>
     <input id="chat-message-submit" type="button" value="Send">
     {{ room_name|json_script:"room-name" }}
+    {{ user.pk|json_script:"current-user" }}
     <script>
         const roomName = JSON.parse(document.getElementById('room-name').textContent);
+        const currentUserPK = JSON.parse(document.getElementById('current-user').textContent);
+        let amITyping = false;
 
         const chatSocket = new WebSocket(
             'ws://'
@@ -22,7 +27,35 @@
 
         chatSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
-            document.querySelector('#chat-log').value += (data.message + '\n');
+            console.log(data)
+            if (data.type === "user.message.text")
+                if (currentUserPK == data.user_pk)
+                    document.querySelector('#chat-log').value += ("You: " + data.text + '\n');
+                else
+                    document.querySelector('#chat-log').value += ("Other user: " + data.text + '\n');
+            else if (data.type === "user.state.online")
+                if (currentUserPK == data.user_pk)
+                    console.log("You're online")
+                else
+                    document.querySelector('#user-availability-state').innerHTML = ( "Other user" + ' is online' + '\n');
+            else if (data.type === "user.state.offline")
+                if (currentUserPK == data.user_pk)
+                    console.log("You're online")
+                else
+                    document.querySelector('#user-availability-state').innerHTML = ( "Other user" + ' is offline' + '\n');
+
+            else if (data.type === "user.typing")
+                if (currentUserPK == data.user_pk) 
+                    console.log("you're typing")
+                else 
+                    document.querySelector('#user-typing-state').innerHTML = ( "Other user" + ' is typing' + '\n');
+            else if (data.type === "user.typing.stopped")
+                if (currentUserPK == data.user_pk)
+                    console.log("your typing stopped") 
+                else
+                    document.querySelector('#user-typing-state').innerHTML = "";
+
+            
         };
 
         chatSocket.onclose = function(e) {
@@ -30,9 +63,31 @@
         };
 
         document.querySelector('#chat-message-input').focus();
+        document.querySelector('#chat-message-input').onkeypress = function(e) {
+            if (e.key !== 'Enter' && ! amITyping) {
+                amITyping = true;
+                chatSocket.send(JSON.stringify({
+                    'type': 'user.typing',
+                }));
+                setTimeout(()=>{
+                    if (amITyping) {
+                        amITyping = false;
+                        chatSocket.send(JSON.stringify({
+                            'type': 'user.typing.stopped',
+                        }));
+                    }
+                }, 5000)
+            }
+        }
         document.querySelector('#chat-message-input').onkeyup = function(e) {
             if (e.key === 'Enter') {  // enter, return
                 document.querySelector('#chat-message-submit').click();
+                if (amITyping) {
+                    amITyping = false;
+                    chatSocket.send(JSON.stringify({
+                        'type': 'user.typing.stopped',
+                    }));
+                }
             }
         };
 
@@ -40,7 +95,8 @@
             const messageInputDom = document.querySelector('#chat-message-input');
             const message = messageInputDom.value;
             chatSocket.send(JSON.stringify({
-                'message': message
+                'type': 'user.message.text',
+                'text': message
             }));
             messageInputDom.value = '';
         };
