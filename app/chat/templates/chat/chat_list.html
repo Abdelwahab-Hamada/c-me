@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat List</title>
+    <link rel="stylesheet" href="{% static 'chat/styles.css' %}">
+</head>
+<body>
+    <div class="wrapper">
+        <div class="container">
+            <div class="left">
+                <div class="top">
+                    <input type="text" placeholder="Search" />
+                    <a href="javascript:;" class="search"></a>
+                </div>
+                <ul class="people">
+                    {% for chat in object_list %}
+                        <li class="person" data-chat="person{{ forloop.counter }}">
+                            <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/382994/thomas.jpg" alt="" />
+                            <span class="name">{{ chat.user1.username }} & {{ chat.user2.username }}</span>
+                            <span class="time">{{ chat.created|date:"P" }}</span>
+                            <span class="preview">{{ chat.get_last_message_for_chat(chat).text }}</span>
+                        </li>
+                    {% empty %}
+                        <li>No chats available.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="right">
+                <!-- Right pane will be filled dynamically with JavaScript based on selected chat -->
+            </div>
+        </div>
+    </div>
+</body>
+</html>

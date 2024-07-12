@@ -2,9 +2,9 @@ from django.urls import path
 
 from . import views
 
-from chat.views import ChatDetailView
+from .views import ChatDetailView
 
-from chat.views import ChatListView
+from .views import ChatListView
 
 
 urlpatterns = [
@@ -13,9 +13,9 @@ urlpatterns = [
 ]
 
 urlpatterns = [
-    path("<slug:slug>/", ChatDetailView.as_view(), name="chat-detail"),
+    path("details", ChatDetailView.as_view(), name="chat-detail"),
 ]
 
 urlpatterns = [
-    path("", ChatListView.as_view(), name="chat-list"),
+    path("list", ChatListView.as_view(), name="chat-list"),
 ]
