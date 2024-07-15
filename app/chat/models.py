@@ -45,7 +45,7 @@ class Chat(TimeStampedModel):
 
     @staticmethod
     def get_chats_for_user(user: AbstractBaseUser):
-        return Chat.objects.filter(Q(user1=user) | Q(user2=user)).values_list('user1__pk', 'user2__pk')
+        return Chat.objects.filter(Q(user1=user) | Q(user2=user))
 
 
 class ChatMessage(TimeStampedModel, SoftDeletableModel):
@@ -89,7 +89,7 @@ class MessageAttachment(models.Model):
 
     @staticmethod
     def create_first_message_attachment(sender: AbstractBaseUser, recipient: AbstractBaseUser, file, text: str=None):
-        message = ChatMessage.create_first_message(sender=sebder, recipient=recipient, text=text)
+        message = ChatMessage.create_first_message(sender=sender, recipient=recipient, text=text)
         MessageAttachment.objects.create(file=file, message=message)
 
     def __str__(self):

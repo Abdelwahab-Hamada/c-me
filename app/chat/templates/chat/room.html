@@ -3,17 +3,41 @@
 <head>
     <meta charset="utf-8"/>
     <title>Chat Room</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
+    <ul class="chat-list">
+        {% for chat in chat_list %}
+            <li class="chat" data-chat="chat{{ forloop.counter }}">
+                <a href="{% url 'room' chat.pk %}">
+                    <span class="name">
+                        {% if user.pk == chat.user1.pk %}
+                            {{ chat.user2.username }}
+                        {% else %}
+                            {{ chat.user1.username }}
+                        {% endif %}
+                    </span>
+                </a>
+                <span class="time">{{ chat.updated|date:"P" }}</span>
+            </li>
+        {% endfor %}
+    </ul>
+    <h1>
+        {% if user.pk == object.user1.pk %}
+            {{ object.user2.username }}
+        {% else %}
+            {{ object.user1.username }}
+        {% endif %}
+    </h1>
     <p id="user-availability-state"></p>
     <p id="user-typing-state"></p>
-    <textarea id="chat-log" cols="100" rows="20"></textarea><br>
+    <div id="chat-log"></div><br>
     <input id="chat-message-input" type="text" size="100"><br>
     <input id="chat-message-submit" type="button" value="Send">
-    {{ room_name|json_script:"room-name" }}
+    {{ object.pk|json_script:"chat-pk" }}
     {{ user.pk|json_script:"current-user" }}
     <script>
-        const roomName = JSON.parse(document.getElementById('room-name').textContent);
+        const chatPK = JSON.parse(document.getElementById('chat-pk').textContent);
         const currentUserPK = JSON.parse(document.getElementById('current-user').textContent);
         let amITyping = false;
 
@@ -21,18 +45,29 @@
             'ws://'
             + window.location.host
             + '/ws/chat/'
-            + roomName
+            + chatPK
             + '/'
         );
 
         chatSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
             console.log(data)
-            if (data.type === "user.message.text")
-                if (currentUserPK == data.user_pk)
-                    document.querySelector('#chat-log').value += ("You: " + data.text + '\n');
-                else
-                    document.querySelector('#chat-log').value += ("Other user: " + data.text + '\n');
+            if (data.type === "user.message.text"){
+                const newMessage = document.createElement("p");
+                newMessage.id = "m_" + data.pk;
+                newMessage.textContent = data.text
+                if (currentUserPK == data.user_pk){
+                    newMessage.className = "text-green-600"
+                }
+                else{
+                    newMessage.className = "text-red-600"
+                    chatSocket.send(JSON.stringify({
+                        'pk': data.pk,
+                        'type': 'user.message.read',
+                    }));
+                }
+                document.querySelector('#chat-log').appendChild(newMessage);
+            }
             else if (data.type === "user.state.online")
                 if (currentUserPK == data.user_pk)
                     console.log("You're online")
@@ -54,6 +89,14 @@
                     console.log("your typing stopped") 
                 else
                     document.querySelector('#user-typing-state').innerHTML = "";
+            else if (data.type === "user.message.read"){
+                if (currentUserPK != data.user_pk){
+                    console.log("read")
+                    console.log(data.pk)
+                    document.querySelector("#m_" + data.pk).className = "text-black";
+                }
+            }
+
 
             
         };

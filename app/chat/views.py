@@ -1,9 +1,10 @@
 from django.shortcuts import render
 
 from django.utils import timezone
-from django.views.generic.detail import DetailView
 
-from chat.models import ChatMessage
+from chat.models import ChatMessage, Chat
+
+from django.views.generic.detail import DetailView
 
 from django.views.generic.list import ListView
 
@@ -17,17 +18,24 @@ def room(request, room_name):
 
 
 class ChatDetailView(DetailView):
-    model = ChatMessage
-    template_name = 'chat/index.html'
+    model = Chat
+    template_name = 'chat/room.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["now"] = timezone.now()
+        queryset = Chat.get_chats_for_user(self.request.user)
+        context["chat_list"] = queryset
         return context
 
 class ChatListView(ListView):
-    model = ChatMessage
+    model = Chat
     paginate_by = 10  
+    template_name = "chat/index.html"
+
+    def get_queryset(self):
+        queryset = Chat.get_chats_for_user(self.request.user)
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

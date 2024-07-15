@@ -5,7 +5,10 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from .utils.event_types import (EventTypes,
                                 EventOnline, EventOffline, 
                                 EventMessageText,
-                                EventIsTyping, EventTypingStopped) 
+                                EventIsTyping, EventTypingStopped,
+                                EventMessageRead) 
+
+from .utils.db import save_text_message
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -42,10 +45,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             if event_type == EventTypes.event_message_text:
                 event["text"] = remote_event["text"]
+                msg_object = await save_text_message(current_user.pk, self.room_name, event["text"])
+                event["pk"] = msg_object.pk
             elif event_type == EventTypes.event_is_typing:
                 event = EventIsTyping(user_pk=current_user.pk)._asdict()
             elif event_type == EventTypes.event_typing_stopped:
                 event = EventTypingStopped(user_pk=current_user.pk)._asdict()
+            elif event_type == EventTypes.event_message_read:
+                event = EventMessageRead(user_pk=current_user.pk, pk=remote_event["pk"])._asdict()
 
             await self.channel_layer.group_send(
                 self.room_group_name, event
@@ -58,8 +65,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps(event))
 
     async def user_message_text(self, event):
-        message = event["text"]
-
         await self.send(text_data=json.dumps(event))
 
     async def user_typing(self, event):
@@ -68,3 +73,5 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def user_typing_stopped(self, event):
         await self.send(text_data=json.dumps(event))
 
+    async def user_message_read(self, event):
+        await self.send(text_data=json.dumps(event))

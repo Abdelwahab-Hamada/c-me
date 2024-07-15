@@ -7,6 +7,7 @@ class EventTypes:
     event_message_file = "user.message.file"
     event_is_typing = "user.typing"
     event_typing_stopped = "user.typing.stopped"
+    event_message_read = "user.message.read"
 
 class EventOnline(NamedTuple):
     user_pk: str
@@ -28,3 +29,8 @@ class EventIsTyping(NamedTuple):
 class EventTypingStopped(NamedTuple):
     user_pk: str
     type: str = EventTypes.event_typing_stopped
+
+class EventMessageRead(NamedTuple):
+    pk: str
+    user_pk: str
+    type: str = EventTypes.event_message_read

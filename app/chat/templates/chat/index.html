@@ -5,24 +5,23 @@
     <title>Chat Rooms</title>
 </head>
 <body>
-
-    <section id="chat-room-selection">
-    What chat room would you like to enter?<br>
-    <input id="room-name-input" type="text" size="100"><br>
-    <input id="room-name-submit" type="button" value="Enter">
-
-    <script>
-        document.querySelector('#room-name-input').focus();
-        document.querySelector('#room-name-input').onkeyup = function(e) {
-            if (e.key === 'Enter') {  // enter, return
-                document.querySelector('#room-name-submit').click();
-            }
-        };
-
-        document.querySelector('#room-name-submit').onclick = function(e) {
-            var roomName = document.querySelector('#room-name-input').value;
-            window.location.pathname = '/chat/' + roomName + '/';
-        };
-    </script>
+    <ul class="chat-list">
+        {% for chat in object_list %}
+            <li class="chat" data-chat="chat{{ forloop.counter }}">
+                <a href="{% url 'room' chat.pk %}">
+                    <span class="name">
+                        {% if user.pk == chat.user1.pk %}
+                            {{ chat.user2.username }}
+                        {% else %}
+                            {{ chat.user1.username }}
+                        {% endif %}
+                    </span>
+                </a>
+                <span class="time">{{ chat.updated|date:"P" }}</span>
+            </li>
+        {% empty %}
+            <li>No chats available.</li>
+        {% endfor %}
+    </ul>
 </body>
 </html>
