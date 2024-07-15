@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Chat Room</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <ul class="chat-list">
+        {% for chat in chat_list %}
+            <li class="chat" data-chat="chat{{ forloop.counter }}">
+                <a href="{% url 'room' chat.pk %}">
+                    <span class="name">
+                        {% if user.pk == chat.user1.pk %}
+                            {{ chat.user2.username }}
+                        {% else %}
+                            {{ chat.user1.username }}
+                        {% endif %}
+                    </span>
+                </a>
+                <span class="time">{{ chat.updated|date:"P" }}</span>
+            </li>
+        {% endfor %}
+    </ul>
+    <h1>
+        {% if user.pk == object.user1.pk %}
+            {{ object.user2.username }}
+        {% else %}
+            {{ object.user1.username }}
+        {% endif %}
+    </h1>
+    <p id="user-availability-state"></p>
+    <p id="user-typing-state"></p>
+    <div id="chat-log"></div><br>
+    <input id="chat-message-input" type="text" size="100"><br>
+    <input id="chat-message-submit" type="button" value="Send">
+    {{ object.pk|json_script:"chat-pk" }}
+    {{ user.pk|json_script:"current-user" }}
+    <script>
+        const chatPK = JSON.parse(document.getElementById('chat-pk').textContent);
+        const currentUserPK = JSON.parse(document.getElementById('current-user').textContent);
+        let amITyping = false;
+
+        const chatSocket = new WebSocket(
+            'ws://'
+            + window.location.host
+            + '/ws/chat/'
+            + chatPK
+            + '/'
+        );
+
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            console.log(data)
+            if (data.type === "user.message.text"){
+                const newMessage = document.createElement("p");
+                newMessage.id = "m_" + data.pk;
+                newMessage.textContent = data.text
+                if (currentUserPK == data.user_pk){
+                    newMessage.className = "text-green-600"
+                }
+                else{
+                    newMessage.className = "text-red-600"
+                    chatSocket.send(JSON.stringify({
+                        'pk': data.pk,
+                        'type': 'user.message.read',
+                    }));
+                }
+                document.querySelector('#chat-log').appendChild(newMessage);
+            }
+            else if (data.type === "user.state.online")
+                if (currentUserPK == data.user_pk)
+                    console.log("You're online")
+                else
+                    document.querySelector('#user-availability-state').innerHTML = ( "Other user" + ' is online' + '\n');
+            else if (data.type === "user.state.offline")
+                if (currentUserPK == data.user_pk)
+                    console.log("You're online")
+                else
+                    document.querySelector('#user-availability-state').innerHTML = ( "Other user" + ' is offline' + '\n');
+
+            else if (data.type === "user.typing")
+                if (currentUserPK == data.user_pk) 
+                    console.log("you're typing")
+                else 
+                    document.querySelector('#user-typing-state').innerHTML = ( "Other user" + ' is typing' + '\n');
+            else if (data.type === "user.typing.stopped")
+                if (currentUserPK == data.user_pk)
+                    console.log("your typing stopped") 
+                else
+                    document.querySelector('#user-typing-state').innerHTML = "";
+            else if (data.type === "user.message.read"){
+                if (currentUserPK != data.user_pk){
+                    console.log("read")
+                    console.log(data.pk)
+                    document.querySelector("#m_" + data.pk).className = "text-black";
+                }
+            }
+
+
+            
+        };
+
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+
+        document.querySelector('#chat-message-input').focus();
+        document.querySelector('#chat-message-input').onkeypress = function(e) {
+            if (e.key !== 'Enter' && ! amITyping) {
+                amITyping = true;
+                chatSocket.send(JSON.stringify({
+                    'type': 'user.typing',
+                }));
+                setTimeout(()=>{
+                    if (amITyping) {
+                        amITyping = false;
+                        chatSocket.send(JSON.stringify({
+                            'type': 'user.typing.stopped',
+                        }));
+                    }
+                }, 5000)
+            }
+        }
+        document.querySelector('#chat-message-input').onkeyup = function(e) {
+            if (e.key === 'Enter') {  // enter, return
+                document.querySelector('#chat-message-submit').click();
+                if (amITyping) {
+                    amITyping = false;
+                    chatSocket.send(JSON.stringify({
+                        'type': 'user.typing.stopped',
+                    }));
+                }
+            }
+        };
+
+        document.querySelector('#chat-message-submit').onclick = function(e) {
+            const messageInputDom = document.querySelector('#chat-message-input');
+            const message = messageInputDom.value;
+            chatSocket.send(JSON.stringify({
+                'type': 'user.message.text',
+                'text': message
+            }));
+            messageInputDom.value = '';
+        };
+    </script>
+</body>
+</html>

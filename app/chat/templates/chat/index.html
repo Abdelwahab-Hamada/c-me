@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Chat Rooms</title>
+</head>
+<body>
+    <ul class="chat-list">
+        {% for chat in object_list %}
+            <li class="chat" data-chat="chat{{ forloop.counter }}">
+                <a href="{% url 'room' chat.pk %}">
+                    <span class="name">
+                        {% if user.pk == chat.user1.pk %}
+                            {{ chat.user2.username }}
+                        {% else %}
+                            {{ chat.user1.username }}
+                        {% endif %}
+                    </span>
+                </a>
+                <span class="time">{{ chat.updated|date:"P" }}</span>
+            </li>
+        {% empty %}
+            <li>No chats available.</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
