@@ -2,35 +2,77 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat List</title>
-    <link rel="stylesheet" href="{% static 'chat/styles.css' %}">
+    {% load static %}
+    <link href="{% static 'chat/styles.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .person {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px; /* Espacement entre chaque personne/chat */
+            padding: 20px; /* Espace intérieur pour plus de confort visuel */
+            border-radius: 20px; /* Bord arrondi pour chaque personne/chat */
+            background-color: #30446a; /* Couleur de fond */
+        }
+        .person:hover {
+            background-color: #e5e7eb; /* Couleur de fond au survol */
+        }
+        .person .back-icon {
+            margin-right: 10px;
+        }
+        .person img {
+            width: 50px; /* Ajustez la taille selon vos besoins */
+            height: 50px; /* Ajustez la taille selon vos besoins */
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .chat-header {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background-color: #6b7280; /* Couleur de fond pour l'en-tête */
+            color: white; /* Couleur du texte pour l'en-tête */
+        }
+        .chat-header .chat-title {
+            margin-left: 10px;
+            font-size: 1.5rem; /* Taille de police pour le titre */
+        }
+    </style>
+    <script>
+        function openChat(chatId) {
+            window.location.href = `/chat/${chatId}/`;
+        }
+    </script>
 </head>
 <body>
-    <div class="wrapper">
-        <div class="container">
-            <div class="left">
-                <div class="top">
-                    <input type="text" placeholder="Search" />
-                    <a href="javascript:;" class="search"></a>
-                </div>
-                <ul class="people">
-                    {% for chat in object_list %}
-                        <li class="person" data-chat="person{{ forloop.counter }}">
-                            <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/382994/thomas.jpg" alt="" />
-                            <span class="name">{{ chat.user1.username }} & {{ chat.user2.username }}</span>
-                            <span class="time">{{ chat.created|date:"P" }}</span>
-                            <span class="preview">{{ chat.get_last_message_for_chat(chat).text }}</span>
-                        </li>
-                    {% empty %}
-                        <li>No chats available.</li>
-                    {% endfor %}
-                </ul>
-            </div>
-            <div class="right">
-                <!-- Right pane will be filled dynamically with JavaScript based on selected chat -->
-            </div>
+    <div class="chat-list-container">
+        <div class="chat-header">
+            <span class="back-icon"><i class="fas fa-chevron-left"></i></span>
+            <span class="chat-title">Chats</span>
         </div>
+        <ul class="chat-list">
+            {% for chat in object_list reversed %}
+                <li class="person" data-chat-id="{{ chat.pk }}" onclick="openChat('{{ chat.pk }}')">
+                    <span class="back-icon"><i class="fas fa-comment"></i></span> <!-- Icône de retour en arrière -->
+                    <div class="info">
+                        <span class="name">{{ chat.user1.username }} & {{ chat.user2.username }}</span>
+                        <span class="time">{{ chat.created|date:"P" }}</span>
+                        {% with last_message=chat.messages.first %}
+                            {% if last_message %}
+                                <span class="preview">{{ last_message.text }}</span>
+                            {% else %}
+                                <span class="preview">No messages yet</span>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                </li>
+            {% empty %}
+                <li>No chats available.</li>
+            {% endfor %}
+        </ul>
     </div>
 </body>
 </html>

@@ -2,40 +2,108 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Detail</title>
-    <link rel="stylesheet" href="{% static 'chat/styles.css' %}">
+    {% load static %}
+    <link href="{% static 'chat/styles.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .chat-container {
+            max-width: 600px;
+            margin: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .chat-header {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background-color: #6b7280; /* Couleur de fond pour l'en-tête */
+            color: white; /* Couleur du texte pour l'en-tête */
+        }
+        .chat-header .back-icon {
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 1.5rem; /* Taille de l'icône */
+        }
+        .chat-header .chat-title {
+            font-size: 1.5rem; /* Taille de police pour le titre */
+        }
+        .chat-thread {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        .chat-thread li {
+            padding: 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .chat-thread .sent {
+            text-align: right;
+        }
+        .chat-thread .received {
+            text-align: left;
+        }
+        .message-container {
+            display: inline-block;
+            max-width: 80%;
+            margin: 5px;
+            padding: 10px;
+            border-radius: 10px;
+            background-color: #f3f4f6; /* Couleur de fond pour les messages */
+        }
+        .message-content {
+            color: #1a202c; /* Couleur du texte des messages */
+        }
+        .chat-window {
+            display: flex;
+            padding: 10px;
+            background-color: #f3f4f6; /* Couleur de fond pour la fenêtre de chat */
+            border-top: 1px solid #e2e8f0;
+        }
+        .chat-window-message {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            margin-right: 10px;
+        }
+        .chat-window button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            background-color: #6b7280; /* Couleur de fond pour le bouton */
+            color: white;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-    <div class="wrapper">
-        <div class="container">
-            <div class="left">
-                <div class="top">
-                    <input type="text" placeholder="Search" />
-                    <a href="javascript:;" class="search"></a>
-                </div>
-                <ul class="people">
-                    <!-- List of people to chat with -->
-                </ul>
-            </div>
-            <div class="right">
-                <div class="top"><span>To: <span class="name">{{ object.sender.username }}</span></span></div>
-                <div class="chat" data-chat="person{{ object.pk }}">
-                    <div class="conversation-start">
-                        <span>{{ object.created|date:"P" }}</span>
-                    </div>
-                    <div class="bubble you">
-                        {{ object.text }}
-                    </div>
-                </div>
-                <div class="write">
-                    <a href="javascript:;" class="write-link attach"></a>
-                    <input type="text" />
-                    <a href="javascript:;" class="write-link smiley"></a>
-                    <a href="javascript:;" class="write-link send"></a>
-                </div>
-            </div>
+    <div class="chat-container">
+        <div class="chat-header">
+            <span class="back-icon" onclick="window.history.back()"><i class="fas fa-chevron-left"></i></span>
+            <span class="chat-title">{{ chat.user1.username }} & {{ chat.user2.username }}</span>
         </div>
+        <ul class="chat-thread">
+            {% for message in chat.messages.all reversed %}
+                <li class="{% if message.sender == user %}sent{% else %}received{% endif %}">
+                    <div class="message-container">
+                        <div class="message-content">
+                            {{ message.text }}
+                        </div>
+                    </div>
+                </li>
+            {% empty %}
+                <li>No messages yet</li>
+            {% endfor %}
+        </ul>
+        <form class="chat-window" method="post" action="{% url 'send_message' chat.pk %}">
+            {% csrf_token %}
+            <input class="chat-window-message" name="message" type="text" autocomplete="off" autofocus />
+            <button type="submit">Send</button>
+        </form>
     </div>
 </body>
 </html>
