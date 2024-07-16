@@ -5,35 +5,45 @@
     <title>Chat Room</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <ul class="chat-list">
-        {% for chat in chat_list %}
+<body class="">
+    <div class="h-screen w-screen flex">
+        <ul id="chat-list" class="bg-slate-400 w-2/12 flex flex-col flex items-center pt-5">
+            {% for chat in chat_list %}
             <li class="chat" data-chat="chat{{ forloop.counter }}">
                 <a href="{% url 'room' chat.pk %}">
                     <span class="name">
                         {% if user.pk == chat.user1.pk %}
-                            {{ chat.user2.username }}
+                        {{ chat.user2.username }}
                         {% else %}
-                            {{ chat.user1.username }}
+                        {{ chat.user1.username }}
                         {% endif %}
                     </span>
                 </a>
                 <span class="time">{{ chat.updated|date:"P" }}</span>
             </li>
-        {% endfor %}
-    </ul>
-    <h1>
-        {% if user.pk == object.user1.pk %}
-            {{ object.user2.username }}
-        {% else %}
-            {{ object.user1.username }}
-        {% endif %}
-    </h1>
-    <p id="user-availability-state"></p>
-    <p id="user-typing-state"></p>
-    <div id="chat-log"></div><br>
-    <input id="chat-message-input" type="text" size="100"><br>
-    <input id="chat-message-submit" type="button" value="Send">
+            {% endfor %}
+        </ul>
+        <div class="relative w-10/12 flex flex-col">
+            <div class="p-5 flex-1">
+                <div class="flex items-center">
+                    <h1 class="text-2xl">
+                        {% if user.pk == object.user1.pk %}
+                        {{ object.user2.username }}
+                        {% else %}
+                        {{ object.user1.username }}
+                        {% endif %}
+                    </h1>
+                    <div id="user-availability-state" class="bg-red-600 w-1 h-1 rounded-full"></div>
+                </div>
+                <p id="user-typing-state" class="text-xs text-grey text-slate-400"></p>
+            </div>
+            <div id="chat-log" class="overflow-y-auto w-full h-4/6 flex flex-col-reverse p-5 gap-y-2 pb-0 bg-slate-600 "></div><br>
+            <div class="w-full flex p-5 gap-x-2 bg-slate-500 flex-1">
+                <input id="chat-message-input" class="flex-auto " type="text"><br>
+                <input id="chat-message-submit" type="button" value="Send">
+            </div>
+        </div>
+    </div>
     {{ object.pk|json_script:"chat-pk" }}
     {{ user.pk|json_script:"current-user" }}
     <script>
@@ -53,37 +63,38 @@
             const data = JSON.parse(e.data);
             console.log(data)
             if (data.type === "user.message.text"){
-                const newMessage = document.createElement("p");
+                const newMessage = document.createElement("div");
                 newMessage.id = "m_" + data.pk;
                 newMessage.textContent = data.text
                 if (currentUserPK == data.user_pk){
-                    newMessage.className = "text-green-600"
+                    newMessage.className = "bg-green-600 self-end "
                 }
                 else{
-                    newMessage.className = "text-red-600"
+                    newMessage.className = "bg-red-600 self-start "
                     chatSocket.send(JSON.stringify({
                         'pk': data.pk,
                         'type': 'user.message.read',
                     }));
                 }
-                document.querySelector('#chat-log').appendChild(newMessage);
+                newMessage.className += "rounded w-fit p-2.5"
+                document.querySelector('#chat-log').prepend(newMessage);
             }
             else if (data.type === "user.state.online")
                 if (currentUserPK == data.user_pk)
                     console.log("You're online")
                 else
-                    document.querySelector('#user-availability-state').innerHTML = ( "Other user" + ' is online' + '\n');
+                    document.querySelector('#user-availability-state').className += " bg-green-600";
             else if (data.type === "user.state.offline")
                 if (currentUserPK == data.user_pk)
                     console.log("You're online")
                 else
-                    document.querySelector('#user-availability-state').innerHTML = ( "Other user" + ' is offline' + '\n');
+                    document.querySelector('#user-availability-state').className += " bg-red-600";
 
             else if (data.type === "user.typing")
                 if (currentUserPK == data.user_pk) 
                     console.log("you're typing")
                 else 
-                    document.querySelector('#user-typing-state').innerHTML = ( "Other user" + ' is typing' + '\n');
+                    document.querySelector('#user-typing-state').innerHTML = "is typing...";
             else if (data.type === "user.typing.stopped")
                 if (currentUserPK == data.user_pk)
                     console.log("your typing stopped") 
@@ -91,9 +102,7 @@
                     document.querySelector('#user-typing-state').innerHTML = "";
             else if (data.type === "user.message.read"){
                 if (currentUserPK != data.user_pk){
-                    console.log("read")
-                    console.log(data.pk)
-                    document.querySelector("#m_" + data.pk).className = "text-black";
+                    document.querySelector("#m_" + data.pk).className += " bg-green-500";
                 }
             }
 
