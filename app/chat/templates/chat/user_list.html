@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Users list</title>
+</head>
+<body>
+    <ul class="chat-list">
+        {% for obj in object_list %}
+            <li>
+                <a href="{% url 'chat' obj.pk %}">
+                    <span class="name">
+                        {{ obj.username }}
+                    </span>
+                </a>
+            </li>
+        {% empty %}
+            <li>You're so friendly'.</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

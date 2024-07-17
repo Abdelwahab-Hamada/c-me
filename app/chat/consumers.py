@@ -11,6 +11,8 @@ from .utils.event_types import (EventTypes,
 from .utils.db import save_text_message, mark_message_as_read
 
 class ChatConsumer(AsyncWebsocketConsumer):
+    online_list = []
+
     async def connect(self):
         current_user = self.scope["user"]
         if current_user.is_authenticated:
@@ -20,6 +22,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             # Join room group
             await self.channel_layer.group_add(self.room_group_name, self.channel_name)
             await self.accept()
+            self.online_list.append(current_user.pk)
             await self.channel_layer.group_send(
                 self.room_group_name, EventOnline(user_pk=str(current_user.pk))._asdict()
             )
@@ -31,6 +34,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         current_user = self.scope["user"]
         # Leave room group
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+        self.online_list.remove(current_user.pk)
         await self.channel_layer.group_send(
             self.room_group_name, EventOffline(user_pk=str(current_user.pk))._asdict()
         )
@@ -65,6 +69,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
 
     async def user_state_online(self, event):
+        event["list"] = self.online_list
         await self.send(text_data=json.dumps(event))
 
     async def user_state_offline(self, event):

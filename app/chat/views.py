@@ -10,6 +10,10 @@ from django.views.generic.list import ListView
 
 from django.views.generic.edit import CreateView
 
+from django.contrib.auth import get_user_model
+
+from django.shortcuts import redirect
+
 from .forms import UploadForm
 
 from django.http import JsonResponse
@@ -47,16 +51,20 @@ class ChatListView(ListView):
         context["now"] = timezone.now()
         return context
 
-class MessageAttachmentCreateView(CreateView):
-    model = MessageAttachment
-    form_class = UploadForm
+class UserListView(ListView):
+    model = get_user_model()
+    paginate_by = 10  
+    template_name = "chat/user_list.html"
 
-    def form_valid(self, form: UploadForm):
-        chat = form.cleaned_data['chat_id']
-        text = form.cleaned_data['text']
-        message = ChatMessage.objects.create(sender=self.request.user, chat_id=chat, text=text)
-        self.object = MessageAttachment.objects.create(file=form.cleaned_data['file'], message=message)
-        return JsonResponse({"a7a":55555555555})
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        queryset = queryset.exclude(pk=self.request.user.pk)
+        return queryset
+
+def create_chat(request, pk):
+    chat = Chat.create_if_not_exists(request.user, pk)
+
+    return redirect("room", pk=chat.pk)
 
 def upload_file(request):
     chat = request.POST['chat_id']
