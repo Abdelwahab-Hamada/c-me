@@ -10,6 +10,10 @@ from django.views.generic.list import ListView
 
 from django.views.generic.edit import CreateView
 
+from django.contrib.auth import get_user_model
+
+from django.shortcuts import redirect
+
 from .forms import UploadForm
 
 from django.http import JsonResponse
@@ -46,6 +50,21 @@ class ChatListView(ListView):
         context = super().get_context_data(**kwargs)
         context["now"] = timezone.now()
         return context
+
+class UserListView(ListView):
+    model = get_user_model()
+    paginate_by = 10  
+    template_name = "chat/user_list.html"
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        queryset = queryset.exclude(pk=self.request.user.pk)
+        return queryset
+
+def create_chat(request, pk):
+    chat = Chat.create_if_not_exists(request.user, pk)
+
+    return redirect("room", pk=chat.pk)
 
 def upload_file(request):
     chat = request.POST['chat_id']

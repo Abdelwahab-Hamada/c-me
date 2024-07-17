@@ -8,23 +8,32 @@
 </head>
 <body class="">
     <div class="h-screen w-screen flex">
-        <ul id="chat-list" class="bg-slate-400 w-2/12 flex flex-col flex items-center pt-5">
-            {% for chat in chat_list %}
-            <li class="chat" data-chat="chat{{ forloop.counter }}">
-                <a href="{% url 'room' chat.pk %}">
+        <div class="w-2/12 flex flex-col">
+            <ul id="chat-list" class="bg-slate-400 flex flex-col h-5/6 items-center pt-5">
+                {% for chat in chat_list %}
+                <li class="chat" data-chat="chat{{ forloop.counter }}">
+                    <a href="{% url 'room' chat.pk %}">
+                        <span class="name">
+                            {% if user.pk == chat.user1.pk %}
+                            {{ chat.user2.username }}
+                            {% else %}
+                            {{ chat.user1.username }}
+                            {% endif %}
+                        </span>
+                    </a>
+                    <span class="time">{{ chat.updated|date:"P" }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            <div class="flex justify-center items-center h-1/6">
+                <a href="{% url 'users-list' %}" class="">
                     <span class="name">
-                        {% if user.pk == chat.user1.pk %}
-                        {{ chat.user2.username }}
-                        {% else %}
-                        {{ chat.user1.username }}
-                        {% endif %}
+                        All users
                     </span>
                 </a>
-                <span class="time">{{ chat.updated|date:"P" }}</span>
-            </li>
-            {% endfor %}
-        </ul>
-        <div class="relative w-10/12 flex flex-col">
+            </div>
+        </div>
+        <div class="relative w-10/12 flex flex-col f">
             <div class="p-5 flex-1">
                 <div class="flex items-center">
                     <h1 class="text-2xl">
@@ -34,7 +43,7 @@
                         {{ object.user1.username }}
                         {% endif %}
                     </h1>
-                    <div id="user-availability-state" class="bg-red-600 w-1 h-1 rounded-full"></div>
+                    <div id="user-availability-state"></div>
                 </div>
                 <p id="user-typing-state" class="text-xs text-grey text-slate-400"></p>
             </div>
@@ -54,11 +63,16 @@
     </div>
     {{ object.pk|json_script:"chat-pk" }}
     {{ user.pk|json_script:"current-user" }}
-    {{ user.pk|json_script:"current-user" }}
+    {% if user.pk == object.user1.pk %}
+        {{ object.user2.pk|json_script:"other-user" }}
+    {% else %}
+        {{ object.user1.pk|json_script:"other-user" }}
+    {% endif %}
     {% csrf_token %}
     <script>
         const chatPK = JSON.parse(document.getElementById('chat-pk').textContent);
         const currentUserPK = JSON.parse(document.getElementById('current-user').textContent);
+        const otherUserPK = JSON.parse(document.getElementById('other-user').textContent);
         const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
         let amITyping = false;
 
@@ -112,17 +126,13 @@
                 newMessage.className += "rounded w-fit p-2.5"
                 document.querySelector('#chat-log').prepend(newMessage);
             }
-            else if (data.type === "user.state.online")
-                if (currentUserPK == data.user_pk)
-                    console.log("You're online")
-                else
-                    document.querySelector('#user-availability-state').className += " bg-green-600";
-            else if (data.type === "user.state.offline")
-                if (currentUserPK == data.user_pk)
-                    console.log("You're online")
-                else
-                    document.querySelector('#user-availability-state').className += " bg-red-600";
-
+            else if (data.type === "user.state.online"){
+                if (data.list.includes(otherUserPK))
+                    document.querySelector('#user-availability-state').className += "w-1 h-1 rounded-full bg-green-600";
+            }
+            else if (data.type === "user.state.offline"){
+                document.querySelector('#user-availability-state').className = "";
+            }
             else if (data.type === "user.typing")
                 if (currentUserPK == data.user_pk) 
                     console.log("you're typing")

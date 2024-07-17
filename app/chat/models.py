@@ -39,7 +39,7 @@ class Chat(TimeStampedModel):
     def create_if_not_exists(u1: AbstractBaseUser, u2: AbstractBaseUser):
         chat = Chat._exists(u1, u2)
         if not chat:
-            chat = Chat.objects.create(user1=u1, user2=u2)
+            chat = Chat.objects.create(user1=u1, user2_id=u2)
 
         return chat
 
