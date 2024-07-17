@@ -47,17 +47,6 @@ class ChatListView(ListView):
         context["now"] = timezone.now()
         return context
 
-class MessageAttachmentCreateView(CreateView):
-    model = MessageAttachment
-    form_class = UploadForm
-
-    def form_valid(self, form: UploadForm):
-        chat = form.cleaned_data['chat_id']
-        text = form.cleaned_data['text']
-        message = ChatMessage.objects.create(sender=self.request.user, chat_id=chat, text=text)
-        self.object = MessageAttachment.objects.create(file=form.cleaned_data['file'], message=message)
-        return JsonResponse({"a7a":55555555555})
-
 def upload_file(request):
     chat = request.POST['chat_id']
     text = request.POST['text']
