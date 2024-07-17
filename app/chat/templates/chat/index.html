@@ -3,32 +3,34 @@
 <head>
     <meta charset="utf-8"/>
     <title>Chat Rooms</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <ul class="chat-list">
-        {% for chat in object_list %}
-            <li class="chat" data-chat="chat{{ forloop.counter }}">
-                <a href="{% url 'room' chat.pk %}">
-                    <span class="name">
-                        {% if user.pk == chat.user1.pk %}
-                            {{ chat.user2.username }}
-                        {% else %}
-                            {{ chat.user1.username }}
-                        {% endif %}
-                    </span>
-                </a>
-                <span class="time">{{ chat.updated|date:"P" }}</span>
-            </li>
-        {% empty %}
-            <li>No chats available.</li>
-        {% endfor %}
-    </ul>
-    <div>
-        <a href="{% url 'users-list' %}">
-            <span class="name">
-                create chat
-            </span>
-        </a>
+<body class="bg-gray-100 h-screen flex flex-col items-center">
+    <div class="w-full max-w-md bg-white rounded-lg shadow-md mt-10 p-5">
+        <h1 class="text-2xl font-bold mb-5">Chat Rooms</h1>
+        <ul class="chat-list space-y-4">
+            {% for chat in object_list %}
+                <li class="chat flex justify-between items-center p-4 bg-gray-100 rounded-lg shadow-sm hover:bg-gray-200 transition">
+                    <a href="{% url 'room' chat.pk %}" class="flex items-center space-x-4 w-full">
+                        <span class="name font-semibold text-lg">
+                            {% if user.pk == chat.user1.pk %}
+                                {{ chat.user2.username }}
+                            {% else %}
+                                {{ chat.user1.username }}
+                            {% endif %}
+                        </span>
+                        <span class="time text-gray-500">{{ chat.updated|date:"P" }}</span>
+                    </a>
+                </li>
+            {% empty %}
+                <li class="text-gray-500">No chats available.</li>
+            {% endfor %}
+        </ul>
+        <div class="mt-5">
+            <a href="{% url 'users-list' %}" class="block text-center text-white bg-blue-500 px-4 py-2 rounded-lg shadow hover:bg-blue-600 transition">
+                Create Chat
+            </a>
+        </div>
     </div>
 </body>
 </html>
