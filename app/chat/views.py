@@ -2,12 +2,17 @@ from django.shortcuts import render
 
 from django.utils import timezone
 
-from chat.models import ChatMessage, Chat
+from chat.models import ChatMessage, Chat, MessageAttachment
 
 from django.views.generic.detail import DetailView
 
 from django.views.generic.list import ListView
 
+from django.views.generic.edit import CreateView
+
+from .forms import UploadForm
+
+from django.http import JsonResponse
 
 def index(request):
     return render(request, "chat/index.html")
@@ -41,3 +46,22 @@ class ChatListView(ListView):
         context = super().get_context_data(**kwargs)
         context["now"] = timezone.now()
         return context
+
+class MessageAttachmentCreateView(CreateView):
+    model = MessageAttachment
+    form_class = UploadForm
+
+    def form_valid(self, form: UploadForm):
+        chat = form.cleaned_data['chat_id']
+        text = form.cleaned_data['text']
+        message = ChatMessage.objects.create(sender=self.request.user, chat_id=chat, text=text)
+        self.object = MessageAttachment.objects.create(file=form.cleaned_data['file'], message=message)
+        return JsonResponse({"a7a":55555555555})
+
+def upload_file(request):
+    chat = request.POST['chat_id']
+    text = request.POST['text']
+    message = ChatMessage.objects.create(sender=request.user, chat_id=chat, text=text)
+    attachment = MessageAttachment.objects.create(file=request.FILES["file"], message=message)
+
+    return JsonResponse({"url": attachment.file.url, "message_id": message.id})

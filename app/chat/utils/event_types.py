@@ -22,6 +22,12 @@ class EventMessageText(NamedTuple):
     text: str
     type: str = EventTypes.event_message_text
 
+class EventMessageFile(NamedTuple):
+    user_pk: str
+    text: str
+    url: str
+    type: str = EventTypes.event_message_file
+
 class EventIsTyping(NamedTuple):
     user_pk: str
     type: str = EventTypes.event_is_typing

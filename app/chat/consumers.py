@@ -4,11 +4,11 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 
 from .utils.event_types import (EventTypes,
                                 EventOnline, EventOffline, 
-                                EventMessageText,
+                                EventMessageText, EventMessageFile,
                                 EventIsTyping, EventTypingStopped,
                                 EventMessageRead) 
 
-from .utils.db import save_text_message
+from .utils.db import save_text_message, mark_message_as_read
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -47,11 +47,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 event["text"] = remote_event["text"]
                 msg_object = await save_text_message(current_user.pk, self.room_name, event["text"])
                 event["pk"] = msg_object.pk
+            elif event_type == EventTypes.event_message_file:
+                text = remote_event["text"]
+                url = remote_event["url"]
+                event = EventMessageFile(user_pk=current_user.pk, text=text, url=url)._asdict()
+                event["pk"] = remote_event["message_id"]
             elif event_type == EventTypes.event_is_typing:
                 event = EventIsTyping(user_pk=current_user.pk)._asdict()
             elif event_type == EventTypes.event_typing_stopped:
                 event = EventTypingStopped(user_pk=current_user.pk)._asdict()
             elif event_type == EventTypes.event_message_read:
+                await mark_message_as_read(remote_event["pk"])
                 event = EventMessageRead(user_pk=current_user.pk, pk=remote_event["pk"])._asdict()
 
             await self.channel_layer.group_send(
@@ -65,6 +71,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps(event))
 
     async def user_message_text(self, event):
+        await self.send(text_data=json.dumps(event))
+
+    async def user_message_file(self, event):
         await self.send(text_data=json.dumps(event))
 
     async def user_typing(self, event):
