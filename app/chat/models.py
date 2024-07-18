@@ -47,6 +47,9 @@ class Chat(TimeStampedModel):
     def get_chats_for_user(user: AbstractBaseUser):
         return Chat.objects.filter(Q(user1=user) | Q(user2=user))
 
+    def get_last_message(self):
+        return ChatMessage.get_last_message_for_chat(self) or ""
+
 
 class ChatMessage(TimeStampedModel, SoftDeletableModel):
     id = models.BigAutoField(primary_key=True, verbose_name=_("Id"))
@@ -58,22 +61,11 @@ class ChatMessage(TimeStampedModel, SoftDeletableModel):
     all_objects = models.Manager()
 
     @staticmethod
-    def get_unread_count_for_chat_with_user(sender, chat):
-        return ChatMessage.objects.filter(sender_id=sender, chat_id=chat, read=False).count()
-
-    @staticmethod
     def get_last_message_for_chat(chat):
         return ChatMessage.objects.filter(chat_id=chat).select_related('sender', 'chat').first()
 
-    @staticmethod
-    def create_first_message(sender: AbstractBaseUser, recipient: AbstractBaseUser, text: str=None):
-        chat = Chat.create_if_not_exists(self.sender, self.recipient)
-        message = ChatMessage.objects.create(sender=sender, chat=chat, text=text)
-
-        return message
-
     def __str__(self):
-        return str(self.pk)
+        return f"{self.text}"
 
     class Meta:
         ordering = ('-created',)
@@ -86,11 +78,6 @@ class MessageAttachment(models.Model):
     file = models.FileField(verbose_name=_("File"), blank=False, null=False, upload_to=user_directory_path)
     message = models.ForeignKey(ChatMessage, related_name='file', on_delete=models.CASCADE,
                             blank=True, null=True)
-
-    @staticmethod
-    def create_first_message_attachment(sender: AbstractBaseUser, recipient: AbstractBaseUser, file, text: str=None):
-        message = ChatMessage.create_first_message(sender=sender, recipient=recipient, text=text)
-        MessageAttachment.objects.create(file=file, message=message)
 
     def __str__(self):
         return str(self.file.name)

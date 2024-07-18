@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 h-screen flex flex-col items-center justify-center">
+    <div class="w-full max-w-md bg-white rounded-lg shadow-md mt-10 p-5">
+        <h1 class="text-2xl font-bold mb-5">Login</h1>
+        <form method="post" class="flex flex-col gap-y-2">
+            {% csrf_token %}
+            <input type="text" name="username" maxlength="150" autocapitalize="none" autocomplete="username" autofocus="" required="" id="id_username" class="p-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" placeholder="Username">
+            <input type="password" name="password" autocomplete="current-password" required="" id="id_password" class="p-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" placeholder="Password">
+            <button type="submit" class="block w-full text-center text-white bg-blue-500 px-4 py-2 rounded-lg shadow hover:bg-blue-600 transition">Login</button>
+            <div class="text-red-600">
+                {% if form.errors %}
+                    {{ form.non_field_errors }}
+                {% endif %}
+            </div>
+        </form>
+        <a class="text-blue-500" href="{% url 'signup' %}">Don't have an account?</a>
+    </div>
+</body>
+</html>

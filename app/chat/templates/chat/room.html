@@ -5,60 +5,69 @@
     <title>Chat Room</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://unpkg.com/htmx.org@2.0.1"></script>
 </head>
-<body class="">
-    <div class="h-screen w-screen flex">
-        <div class="w-2/12 flex flex-col">
-            <ul id="chat-list" class="bg-slate-400 flex flex-col h-5/6 items-center pt-5">
-                {% for chat in chat_list %}
-                <li class="chat" data-chat="chat{{ forloop.counter }}">
-                    <a href="{% url 'room' chat.pk %}">
-                        <span class="name">
+<body class="bg-gray-100 h-screen flex">
+    <div class="w-1/4 bg-white flex flex-col shadow-lg">
+        <ul id="chat-list" class="flex flex-col h-full overflow-y-auto">
+            {% for chat in chat_list %}
+                <li class="chat p-4 border-b hover:bg-gray-200 transition">
+                    <a href="{% url 'room' chat.pk %}" class="flex justify-between items-center">
+                        <span class="name font-semibold text-lg">
                             {% if user.pk == chat.user1.pk %}
-                            {{ chat.user2.username }}
+                                {{ chat.user2.username }}
                             {% else %}
-                            {{ chat.user1.username }}
+                                {{ chat.user1.username }}
                             {% endif %}
                         </span>
+                        <span class="time text-gray-500 text-sm">{{ chat.updated|date:"P" }}</span>
                     </a>
-                    <span class="time">{{ chat.updated|date:"P" }}</span>
                 </li>
-                {% endfor %}
-            </ul>
-            <div class="flex justify-center items-center h-1/6">
-                <a href="{% url 'users-list' %}" class="">
-                    <span class="name">
-                        All users
-                    </span>
-                </a>
-            </div>
+            {% endfor %}
+        </ul>
+        <div class="p-4 border-t">
+            <a href="{% url 'users-list' %}" class="block text-center text-white bg-blue-500 px-4 py-2 rounded-lg shadow hover:bg-blue-600 transition">
+                All Users
+            </a>
         </div>
-        <div class="relative w-10/12 flex flex-col f">
-            <div class="p-5 flex-1">
-                <div class="flex items-center">
-                    <h1 class="text-2xl">
+    </div>
+    <div class="flex-1 flex flex-col">
+        <div class="bg-white shadow-md flex justify-between items-center px-1">
+            <div class="p-5 bg-white flex flex-col justify-between">
+                <div class="flex">
+                    <h1 class="text-2xl font-bold">
                         {% if user.pk == object.user1.pk %}
-                        {{ object.user2.username }}
+                            {{ object.user2.username }}
                         {% else %}
-                        {{ object.user1.username }}
+                            {{ object.user1.username }}
                         {% endif %}
                     </h1>
-                    <div id="user-availability-state"></div>
+                    <div id="user-availability-state" class=""></div>
                 </div>
-                <p id="user-typing-state" class="text-xs text-grey text-slate-400"></p>
+                <p id="user-typing-state" class="text-xs text-gray-500"></p>
             </div>
-            <div id="chat-log" class="overflow-y-auto w-full h-4/6 flex flex-col-reverse p-5 gap-y-2 pb-0 bg-slate-600 "></div><br>
-            <div class="w-full flex p-5 gap-x-2 bg-slate-500 flex-1 items-baseline">
-                <label for="chat-message-attachment" class="cursor-pointer">
-                    <i class="fa fa-paperclip" aria-hidden="true"></i>
-                    <input id="chat-message-attachment" class="flex-auto hidden " type="file">
-                </label>
-                <input id="chat-message-input" class="flex-auto " type="text">
-                <label for="chat-message-submit" class="cursor-pointer">
-                    <i class="fa fa-paper-plane" aria-hidden="true"></i>
-                    <input id="chat-message-submit" type="button">
-                </label>
-            </div>
+            <form action="{% url 'logout' %}" method="post">
+                {% csrf_token %}
+                <button class="bg-white text-blue-500 px-4 py-2 rounded-lg hover:text-blue-700 transition duration-200" type="submit">
+                    <i class="fa fa-sign-out" aria-hidden="true"></i>
+                </button>
+            </form>
+        </div>
+        
+        <div >
+            <button id="load-all" class="block w-full text-center text-white bg-blue-500 shadow hover:bg-blue-600 transition" hx-get="{% url 'chat-messages' object.pk %}" hx-trigger="click" hx-target="#chat-log" hx-swap="innerHTML">Load all</button>
+        </div>
+        <div id="chat-log" class="flex-1 overflow-y-auto bg-gray-200 p-5 flex flex-col-reverse gap-y-2"></div>
+        <div class="bg-white p-4 flex items-center shadow-md">
+            <label for="chat-message-attachment" class="cursor-pointer text-gray-500 hover:text-gray-700 transition">
+                <i class="fa fa-paperclip" aria-hidden="true"></i>
+                <input id="chat-message-attachment" class="hidden" type="file">
+            </label>
+            <input id="chat-message-input" class="flex-1 mx-4 p-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" type="text">
+            <label for="chat-message-submit" class="cursor-pointer text-gray-500 hover:text-gray-700 transition">
+                <i class="fa fa-paper-plane" aria-hidden="true"></i>
+                <input id="chat-message-submit" class="hidden" type="button">
+            </label>
         </div>
     </div>
     {{ object.pk|json_script:"chat-pk" }}
@@ -84,98 +93,156 @@
             + '/'
         );
 
+        fetch('/chat/messages/unread/'+chatPK+"/")
+        .then(response => response.json())  // Parse JSON response
+        .then(data => {
+            data.messages.map((message) => {
+                const newMessage = document.createElement("div");
+                const textMessage = document.createElement("span") 
+                textMessage.textContent = message.text
+                newMessage.append(textMessage)
+                if (message.url != ""){
+                    const image = document.createElement("img");
+                    image.src = message.url;
+                    image.width = 200;
+                    image.height = 150;
+                    newMessage.appendChild(image);
+                }
+                newMessage.id = "m_" + message.pk;
+                newMessage.className = "bg-gray-300 text-black self-start p-2 rounded-lg px-5";
+                document.querySelector('#chat-log').append(newMessage);
+            });
+        })
+        .catch(error => {
+          console.error(error);  // Handle errors
+        });
+
         chatSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
             console.log(data)
             if (data.type === "user.message.text"){
                 const newMessage = document.createElement("div");
+                const textMessage = document.createElement("span") 
+                textMessage.textContent = data.text
+                newMessage.append(textMessage)
                 newMessage.id = "m_" + data.pk;
-                newMessage.textContent = data.text
                 if (currentUserPK == data.user_pk){
-                    newMessage.className = "bg-green-600 self-end "
+                    newMessage.className = "bg-blue-500 text-white self-end p-2 rounded-lg relative px-5";
                 }
                 else{
-                    newMessage.className = "bg-red-600 self-start "
+                    newMessage.className = "bg-gray-300 text-black self-start p-2 rounded-lg px-5";
                     chatSocket.send(JSON.stringify({
                         'pk': data.pk,
                         'type': 'user.message.read',
                     }));
                 }
-                newMessage.className += "rounded w-fit p-2.5"
                 document.querySelector('#chat-log').prepend(newMessage);
             }
             else if (data.type === "user.message.file"){
                 const newMessage = document.createElement("div");
                 const image = document.createElement("img");
-                image.src = data.url
+                image.src = data.url;
                 image.width = 200;
                 image.height = 150;
+                const textMessage = document.createElement("span") 
+                textMessage.textContent = data.text
+                newMessage.append(textMessage)
                 newMessage.id = "m_" + data.pk;
-                newMessage.textContent = data.text
-                newMessage.appendChild(image)
+                newMessage.appendChild(image);
                 if (currentUserPK == data.user_pk){
-                    newMessage.className = "bg-green-600 self-end "
+                    newMessage.className = "bg-blue-500 text-white self-end p-2 rounded-lg relative px-5";
                 }
                 else{
-                    newMessage.className = "bg-red-600 self-start "
+                    newMessage.className = "bg-gray-300 text-black self-start p-2 rounded-lg px-5";
                     chatSocket.send(JSON.stringify({
                         'pk': data.pk,
                         'type': 'user.message.read',
                     }));
                 }
-                newMessage.className += "rounded w-fit p-2.5"
                 document.querySelector('#chat-log').prepend(newMessage);
             }
             else if (data.type === "user.state.online"){
                 if (data.list.includes(otherUserPK))
-                    document.querySelector('#user-availability-state').className += "w-1 h-1 rounded-full bg-green-600";
+                    document.querySelector('#user-availability-state').className += " w-2 h-2 bg-green-500 rounded-full";
             }
             else if (data.type === "user.state.offline"){
                 document.querySelector('#user-availability-state').className = "";
             }
-            else if (data.type === "user.typing")
+            else if (data.type === "user.typing"){
                 if (currentUserPK == data.user_pk) 
-                    console.log("you're typing")
+                    console.log("you're typing");
                 else 
                     document.querySelector('#user-typing-state').innerHTML = "is typing...";
-            else if (data.type === "user.typing.stopped")
+            }
+            else if (data.type === "user.typing.stopped"){
                 if (currentUserPK == data.user_pk)
-                    console.log("your typing stopped") 
+                    console.log("your typing stopped"); 
                 else
                     document.querySelector('#user-typing-state').innerHTML = "";
+            }
             else if (data.type === "user.message.read"){
                 if (currentUserPK != data.user_pk){
-                    document.querySelector("#m_" + data.pk).className += " bg-green-500";
+                    const eyeIconElement = document.createElement('i');
+                    eyeIconElement.classList.add('fa', 'fa-eye', 'text-slate-200', 'text-xs', 'absolute', 'bottom-0', 'right-1');
+                    eyeIconElement.setAttribute('aria-hidden', 'true');
+                    document.querySelector("#m_" + data.pk).append(eyeIconElement);
                 }
             }
-
-
-            
         };
 
         chatSocket.onclose = function(e) {
             console.error('Chat socket closed unexpectedly');
         };
 
+        document.querySelector('#chat-message-attachment').addEventListener('change', function() {
+          const label = document.querySelector('label[for="chat-message-attachment"]')
+          const submitLabel = document.querySelector('label[for="chat-message-submit"]')
+
+          if (this.files.length > 0) {
+            label.className = "cursor-pointer text-blue-500 hover:text-gray-700 transition"; 
+            submitLabel.className = "cursor-pointer text-blue-500 hover:text-gray-700 transition"; 
+        } else {
+            label.className = "cursor-pointer text-gray-500 hover:text-gray-700 transition"; 
+            submitLabel.className = "cursor-pointer text-gray-500 hover:text-gray-700 transition";
+          }
+        });
+
+        document.querySelector('#load-all').addEventListener('click', function() {
+            this.className = "block w-full text-center text-white bg-slate-400 shadow transition cursor-not-allowed"
+            this.disabled = true;
+
+        });
+
+        document.querySelector('#chat-message-input').addEventListener('input', function() {
+            const label = document.querySelector('label[for="chat-message-submit"]')
+            const fileInputDom = document.querySelector('#chat-message-attachment')
+            
+            if (this.value.length > 0) {
+                label.className = "cursor-pointer text-blue-500 hover:text-blue-700 transition"; 
+            } else {
+                label.className = "cursor-pointer text-gray-500 hover:text-gray-700 transition"; 
+            }
+        });
+
         document.querySelector('#chat-message-input').focus();
         document.querySelector('#chat-message-input').onkeypress = function(e) {
-            if (e.key !== 'Enter' && ! amITyping) {
+            if (e.key !== 'Enter' && !amITyping) {
                 amITyping = true;
                 chatSocket.send(JSON.stringify({
                     'type': 'user.typing',
                 }));
-                setTimeout(()=>{
+                setTimeout(() => {
                     if (amITyping) {
                         amITyping = false;
                         chatSocket.send(JSON.stringify({
                             'type': 'user.typing.stopped',
                         }));
                     }
-                }, 5000)
+                }, 5000);
             }
-        }
+        };
         document.querySelector('#chat-message-input').onkeyup = function(e) {
-            if (e.key === 'Enter') {  // enter, return
+            if (e.key === 'Enter') {
                 document.querySelector('#chat-message-submit').click();
                 if (amITyping) {
                     amITyping = false;
@@ -191,7 +258,7 @@
             const attachmentMessageInputDom = document.querySelector('#chat-message-attachment');
             const textMessage = textMessageInputDom.value;
             const file = attachmentMessageInputDom.files[0];
-            if (file){
+            if (file) {
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('text', textMessage);
@@ -211,14 +278,19 @@
                         'url': data.url,
                         'message_id': data.message_id
                     }));
-                })
-            }else if (textMessage){
+                });
+            } else if (textMessage) {
                 chatSocket.send(JSON.stringify({
                     'type': 'user.message.text',
                     'text': textMessage
                 }));
             }
             textMessageInputDom.value = '';
+            attachmentMessageInputDom.value = '';
+            const attachmentLabel = document.querySelector('label[for="chat-message-attachment"]')
+            const submitLabel = document.querySelector('label[for="chat-message-submit"]')
+            attachmentLabel.className = "cursor-pointer text-gray-500 hover:text-gray-700 transition"; 
+            submitLabel.className = "cursor-pointer text-gray-500 hover:text-gray-700 transition";
         };
     </script>
 </body>

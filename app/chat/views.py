@@ -16,7 +16,8 @@ from django.shortcuts import redirect
 
 from .forms import UploadForm
 
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+
 
 def index(request):
     return render(request, "chat/index.html")
@@ -73,3 +74,40 @@ def upload_file(request):
     attachment = MessageAttachment.objects.create(file=request.FILES["file"], message=message)
 
     return JsonResponse({"url": attachment.file.url, "message_id": message.id})
+
+def messages_history(request, pk):
+    messages = ChatMessage.objects.filter(chat_id=pk)
+    html = ""
+
+    if messages.count() > 0:
+        for message in messages:
+            class_name = "bg-blue-500 text-white self-end p-2 rounded-lg"
+            img = ""
+            if message.sender.pk != request.user.pk:
+                class_name = "bg-gray-300 text-black self-start p-2 rounded-lg"
+            if message.file.exists():
+                img = f'''
+                    <img src="{message.file.first().file.url}" width="200" height="150">
+                '''
+            html += f'''
+                <div id="m_{message.pk}" class="{class_name}">
+                    {message.text}
+                    {img}
+                </div>
+            '''
+
+    return HttpResponse(html)
+
+def unread_messages(request, pk):
+    messages = ChatMessage.objects.exclude(read=True).exclude(sender=request.user)
+    unread_messages = []
+
+    for message in messages:
+        image_url = None
+        if message.file.exists():
+            image_url = message.file.first().file.url
+
+        unread_messages.append({"pk": message.id, "text": message.text, "url": image_url})    
+
+    messages.update(read=True)
+    return JsonResponse({"messages": unread_messages})

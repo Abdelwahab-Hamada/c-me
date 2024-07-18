@@ -5,7 +5,7 @@ from .models import ChatMessage, Chat, MessageAttachment
 class ChatMessageAdmin(admin.ModelAdmin):
     readonly_fields = ('created', 'modified',)
     search_fields = ('id', 'text', 'sender__pk', 'chat__pk')
-    list_display = ('id', 'sender', 'chat', 'text', 'read')
+    list_display = ('id', 'sender', 'chat', 'text', 'read', 'created')
     list_display_links = ('id',)
     list_filter = ('sender', 'chat')
     date_hierarchy = 'created'
