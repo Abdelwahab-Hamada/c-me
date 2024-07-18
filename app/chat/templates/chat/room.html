@@ -5,6 +5,7 @@
     <title>Chat Room</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://unpkg.com/htmx.org@2.0.1"></script>
 </head>
 <body class="bg-gray-100 h-screen flex">
     <div class="w-1/4 bg-white flex flex-col shadow-lg">
@@ -31,19 +32,30 @@
         </div>
     </div>
     <div class="flex-1 flex flex-col">
-        <div class="p-5 bg-white shadow-md flex items-center justify-between">
-            <div>
-                <a href="{% url 'index' %}" class="text-gray-600 text-sm mb-4 inline-block">&larr; Back to Chat Rooms</a>
-                <h1 class="text-2xl font-bold">
-                    {% if user.pk == object.user1.pk %}
-                        {{ object.user2.username }}
-                    {% else %}
-                        {{ object.user1.username }}
-                    {% endif %}
-                </h1>
-                <div id="user-availability-state" class="text-gray-500"></div>
+        <div class="bg-white shadow-md flex justify-between items-center px-1">
+            <div class="p-5 bg-white flex flex-col justify-between">
+                <div class="flex">
+                    <h1 class="text-2xl font-bold">
+                        {% if user.pk == object.user1.pk %}
+                            {{ object.user2.username }}
+                        {% else %}
+                            {{ object.user1.username }}
+                        {% endif %}
+                    </h1>
+                    <div id="user-availability-state" class=""></div>
+                </div>
+                <p id="user-typing-state" class="text-xs text-gray-500"></p>
             </div>
-            <p id="user-typing-state" class="text-xs text-gray-500"></p>
+            <form action="{% url 'logout' %}" method="post">
+                {% csrf_token %}
+                <button class="bg-white text-blue-500 px-4 py-2 rounded-lg hover:text-blue-700 transition duration-200" type="submit">
+                    <i class="fa fa-sign-out" aria-hidden="true"></i>
+                </button>
+            </form>
+        </div>
+        
+        <div >
+            <button id="load-all" class="block w-full text-center text-white bg-blue-500 shadow hover:bg-blue-600 transition" hx-get="{% url 'chat-messages' object.pk %}" hx-trigger="click" hx-target="#chat-log" hx-swap="innerHTML">Load all</button>
         </div>
         <div id="chat-log" class="flex-1 overflow-y-auto bg-gray-200 p-5 flex flex-col-reverse gap-y-2"></div>
         <div class="bg-white p-4 flex items-center shadow-md">
@@ -52,7 +64,7 @@
                 <input id="chat-message-attachment" class="hidden" type="file">
             </label>
             <input id="chat-message-input" class="flex-1 mx-4 p-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" type="text">
-            <label for="chat-message-submit" class="cursor-pointer text-blue-500 hover:text-blue-700 transition">
+            <label for="chat-message-submit" class="cursor-pointer text-gray-500 hover:text-gray-700 transition">
                 <i class="fa fa-paper-plane" aria-hidden="true"></i>
                 <input id="chat-message-submit" class="hidden" type="button">
             </label>
@@ -81,18 +93,44 @@
             + '/'
         );
 
+        fetch('/chat/messages/unread/'+chatPK+"/")
+        .then(response => response.json())  // Parse JSON response
+        .then(data => {
+            data.messages.map((message) => {
+                const newMessage = document.createElement("div");
+                const textMessage = document.createElement("span") 
+                textMessage.textContent = message.text
+                newMessage.append(textMessage)
+                if (message.url != ""){
+                    const image = document.createElement("img");
+                    image.src = message.url;
+                    image.width = 200;
+                    image.height = 150;
+                    newMessage.appendChild(image);
+                }
+                newMessage.id = "m_" + message.pk;
+                newMessage.className = "bg-gray-300 text-black self-start p-2 rounded-lg px-5";
+                document.querySelector('#chat-log').append(newMessage);
+            });
+        })
+        .catch(error => {
+          console.error(error);  // Handle errors
+        });
+
         chatSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
             console.log(data)
             if (data.type === "user.message.text"){
                 const newMessage = document.createElement("div");
+                const textMessage = document.createElement("span") 
+                textMessage.textContent = data.text
+                newMessage.append(textMessage)
                 newMessage.id = "m_" + data.pk;
-                newMessage.textContent = data.text
                 if (currentUserPK == data.user_pk){
-                    newMessage.className = "bg-blue-500 text-white self-end p-2 rounded-lg";
+                    newMessage.className = "bg-blue-500 text-white self-end p-2 rounded-lg relative px-5";
                 }
                 else{
-                    newMessage.className = "bg-gray-300 text-black self-start p-2 rounded-lg";
+                    newMessage.className = "bg-gray-300 text-black self-start p-2 rounded-lg px-5";
                     chatSocket.send(JSON.stringify({
                         'pk': data.pk,
                         'type': 'user.message.read',
@@ -106,14 +144,16 @@
                 image.src = data.url;
                 image.width = 200;
                 image.height = 150;
+                const textMessage = document.createElement("span") 
+                textMessage.textContent = data.text
+                newMessage.append(textMessage)
                 newMessage.id = "m_" + data.pk;
-                newMessage.textContent = data.text;
                 newMessage.appendChild(image);
                 if (currentUserPK == data.user_pk){
-                    newMessage.className = "bg-blue-500 text-white self-end p-2 rounded-lg";
+                    newMessage.className = "bg-blue-500 text-white self-end p-2 rounded-lg relative px-5";
                 }
                 else{
-                    newMessage.className = "bg-gray-300 text-black self-start p-2 rounded-lg";
+                    newMessage.className = "bg-gray-300 text-black self-start p-2 rounded-lg px-5";
                     chatSocket.send(JSON.stringify({
                         'pk': data.pk,
                         'type': 'user.message.read',
@@ -126,7 +166,7 @@
                     document.querySelector('#user-availability-state').className += " w-2 h-2 bg-green-500 rounded-full";
             }
             else if (data.type === "user.state.offline"){
-                document.querySelector('#user-availability-state').className = "w-2 h-2 bg-gray-400 rounded-full";
+                document.querySelector('#user-availability-state').className = "";
             }
             else if (data.type === "user.typing"){
                 if (currentUserPK == data.user_pk) 
@@ -142,7 +182,10 @@
             }
             else if (data.type === "user.message.read"){
                 if (currentUserPK != data.user_pk){
-                    document.querySelector("#m_" + data.pk).className += " bg-green-400";
+                    const eyeIconElement = document.createElement('i');
+                    eyeIconElement.classList.add('fa', 'fa-eye', 'text-slate-200', 'text-xs', 'absolute', 'bottom-0', 'right-1');
+                    eyeIconElement.setAttribute('aria-hidden', 'true');
+                    document.querySelector("#m_" + data.pk).append(eyeIconElement);
                 }
             }
         };
@@ -150,6 +193,36 @@
         chatSocket.onclose = function(e) {
             console.error('Chat socket closed unexpectedly');
         };
+
+        document.querySelector('#chat-message-attachment').addEventListener('change', function() {
+          const label = document.querySelector('label[for="chat-message-attachment"]')
+          const submitLabel = document.querySelector('label[for="chat-message-submit"]')
+
+          if (this.files.length > 0) {
+            label.className = "cursor-pointer text-blue-500 hover:text-gray-700 transition"; 
+            submitLabel.className = "cursor-pointer text-blue-500 hover:text-gray-700 transition"; 
+        } else {
+            label.className = "cursor-pointer text-gray-500 hover:text-gray-700 transition"; 
+            submitLabel.className = "cursor-pointer text-gray-500 hover:text-gray-700 transition";
+          }
+        });
+
+        document.querySelector('#load-all').addEventListener('click', function() {
+            this.className = "block w-full text-center text-white bg-slate-400 shadow transition cursor-not-allowed"
+            this.disabled = true;
+
+        });
+
+        document.querySelector('#chat-message-input').addEventListener('input', function() {
+            const label = document.querySelector('label[for="chat-message-submit"]')
+            const fileInputDom = document.querySelector('#chat-message-attachment')
+            
+            if (this.value.length > 0) {
+                label.className = "cursor-pointer text-blue-500 hover:text-blue-700 transition"; 
+            } else {
+                label.className = "cursor-pointer text-gray-500 hover:text-gray-700 transition"; 
+            }
+        });
 
         document.querySelector('#chat-message-input').focus();
         document.querySelector('#chat-message-input').onkeypress = function(e) {
@@ -213,6 +286,11 @@
                 }));
             }
             textMessageInputDom.value = '';
+            attachmentMessageInputDom.value = '';
+            const attachmentLabel = document.querySelector('label[for="chat-message-attachment"]')
+            const submitLabel = document.querySelector('label[for="chat-message-submit"]')
+            attachmentLabel.className = "cursor-pointer text-gray-500 hover:text-gray-700 transition"; 
+            submitLabel.className = "cursor-pointer text-gray-500 hover:text-gray-700 transition";
         };
     </script>
 </body>

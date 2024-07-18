@@ -4,14 +4,23 @@
     <meta charset="utf-8"/>
     <title>Chat Rooms</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
-<body class="bg-gray-100 h-screen flex flex-col items-center">
+<body class="bg-gray-100 h-screen flex flex-col items-center justify-center">
     <div class="w-full max-w-md bg-white rounded-lg shadow-md mt-10 p-5">
-        <h1 class="text-2xl font-bold mb-5">Chat Rooms</h1>
+        <div class="flex justify-between items-center mb-4">            
+            <h1 class="text-2xl font-bold mb-5">Chat Rooms</h1>
+            <form action="{% url 'logout' %}" method="post">
+                {% csrf_token %}
+                <button class="bg-white text-blue-500 px-4 py-2 rounded-lg hover:text-blue-700 transition duration-200" type="submit">
+                    <i class="fa fa-sign-out" aria-hidden="true"></i>
+                </button>
+            </form>
+        </div>
         <ul class="chat-list space-y-4">
             {% for chat in object_list %}
-                <li class="chat flex justify-between items-center p-4 bg-gray-100 rounded-lg shadow-sm hover:bg-gray-200 transition">
-                    <a href="{% url 'room' chat.pk %}" class="flex items-center space-x-4 w-full">
+                <li class="chat flex flex-col justify-between p-4 bg-gray-100 rounded-lg shadow-sm hover:bg-gray-200 transition">
+                    <a href="{% url 'room' chat.pk %}" class="flex items-center justify-between space-x-4 w-full">
                         <span class="name font-semibold text-lg">
                             {% if user.pk == chat.user1.pk %}
                                 {{ chat.user2.username }}
@@ -19,8 +28,24 @@
                                 {{ chat.user1.username }}
                             {% endif %}
                         </span>
-                        <span class="time text-gray-500">{{ chat.updated|date:"P" }}</span>
+                        <span class="time text-gray-500 text-xs">
+                            {% with today=now %}
+                              {% if chat.get_last_message.created.date == today.date %}
+                                {{ chat.get_last_message.created|date:"P" }}
+                              {% else %}
+                                {{ chat.get_last_message.created|date }}
+                              {% endif %}
+                            {% endwith %}
+                        </span>
                     </a>
+                    <span class="text-gray-500 text-xs">
+                        {% if chat.get_last_message.sender.pk == user.pk %}
+                            You:{{ chat.get_last_message }}
+                        {% else %}
+                            {{ chat.get_last_message }}
+                        {% endif %}
+
+                    </span>
                 </li>
             {% empty %}
                 <li class="text-gray-500">No chats available.</li>
@@ -28,7 +53,7 @@
         </ul>
         <div class="mt-5">
             <a href="{% url 'users-list' %}" class="block text-center text-white bg-blue-500 px-4 py-2 rounded-lg shadow hover:bg-blue-600 transition">
-                Create Chat
+                All Users
             </a>
         </div>
     </div>

@@ -18,12 +18,11 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.shortcuts import redirect
-
-def redirect_to_chat(request):
-    return redirect('/chat/')
+from .views import redirect_to_chat, SignUpView
 
 urlpatterns = [
+    path("accounts/signup/", SignUpView.as_view(), name="signup"),
+    path("accounts/", include("django.contrib.auth.urls")),
     path('admin/', admin.site.urls),
     path('chat/', include('chat.urls')),
     path('', redirect_to_chat),
