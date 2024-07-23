@@ -99,7 +99,7 @@ def messages_history(request, pk):
     return HttpResponse(html)
 
 def unread_messages(request, pk):
-    messages = ChatMessage.objects.exclude(read=True).exclude(sender=request.user)
+    messages = ChatMessage.objects.filter(chat_id=pk).exclude(read=True).exclude(sender=request.user)
     unread_messages = []
 
     for message in messages:

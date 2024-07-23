@@ -101,7 +101,7 @@
                 const textMessage = document.createElement("span") 
                 textMessage.textContent = message.text
                 newMessage.append(textMessage)
-                if (message.url != ""){
+                if (message.url){
                     const image = document.createElement("img");
                     image.src = message.url;
                     image.width = 200;
