@@ -11,6 +11,7 @@
     <div class="w-1/4 bg-white flex flex-col shadow-lg">
         <ul id="chat-list" class="flex flex-col h-full overflow-y-auto">
             {% for chat in chat_list %}
+                {% if object.pk != chat.pk%}
                 <li class="chat p-4 border-b hover:bg-gray-200 transition">
                     <a href="{% url 'room' chat.pk %}" class="flex justify-between items-center">
                         <span class="name font-semibold text-lg">
@@ -20,9 +21,26 @@
                                 {{ chat.user1.username }}
                             {% endif %}
                         </span>
-                        <span class="time text-gray-500 text-sm">{{ chat.updated|date:"P" }}</span>
+                        <span class="time text-gray-500 text-xs">
+                            {% with today=now %}
+                              {% if chat.get_last_message.created.date == today.date %}
+                                {{ chat.get_last_message.created|date:"P" }}
+                              {% else %}
+                                {{ chat.get_last_message.created|date }}
+                              {% endif %}
+                            {% endwith %}
+                        </span>
                     </a>
+                    <span class="text-gray-500 text-xs">
+                        {% if chat.get_last_message.sender.pk == user.pk %}
+                            You:{{ chat.get_last_message }}
+                        {% else %}
+                            {{ chat.get_last_message }}
+                        {% endif %}
+
+                    </span>
                 </li>
+                {% endif %}
             {% endfor %}
         </ul>
         <div class="p-4 border-t">
